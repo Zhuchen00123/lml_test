@@ -1,4 +1,4 @@
-path = '/tmp/linux-lmi-pmos/drivers/power/reset/qcom-pon.c'
+path = '/tmp/linux-lmi/drivers/power/reset/qcom-pon.c'
 code = open(path).read()
 
 # Add new defines after PON_SOFT_RB_SPARE

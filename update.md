@@ -274,3 +274,64 @@ fastboot flash boot F:\opencodeprojects\k30pro\boot-pmos-v3.img
 fastboot reboot
 ```
 > 注意：`fastboot boot` 对 74MB 镜像会 Load Error，必须用 `fastboot flash boot`。
+
+---
+
+## 迭代 7: Config 合并问题深入调查
+
+**日期**: 2026-06-30  
+**状态**: 进行中
+
+### 问题描述
+
+yuweiyuan8 的 `sm8250.config` 期望以下配置为 `=y`（内建）：
+- `CONFIG_SND_SOC_QDSP6_PRM=y`
+- `CONFIG_SND_SOC_QDSP6_PRM_LPASS_CLOCKS=y`
+- `CONFIG_BATTERY_QCOM_FG=y`
+
+但实际运行内核中这些配置为 `=m`（模块）或未设置，导致：
+- 音频：Soundwire 链路无法建立，无声卡
+- 电池：无 battery 设备，无法读取电量
+
+### 根因分析
+
+**`make defconfig` 覆盖了 `sm8250.config` 的设置**
+
+尝试的修复方法：
+1. `make defconfig` + `merge_config.sh` → 被 `make olddefconfig` 覆盖
+2. 直接 `sed` 修改 `.config` → 被 `make` 的 `syncconfig` 覆盖
+3. 修改 Kconfig 添加 `default y` → 仍然被覆盖
+
+**核心问题**：`make` 命令在编译前会运行 `syncconfig`，重新生成 `.config`，覆盖手动修改。
+
+### 当前状态
+
+| 功能 | 状态 | 说明 |
+|------|:---:|------|
+| 显示 | ✅ | DSI-1 1080x2400 |
+| 触控 | ✅ | FT3518 |
+| GPU | ✅ | Adreno 650 |
+| WiFi | ✅ | wlp1s0, NetworkManager |
+| 蓝牙 | ✅ | fix-bt-mac.sh 修复 BD 地址 |
+| 关机 | ✅ | system-power-controller + qcom-pon 补丁 |
+| Venus | ✅ | 固件已装，video14/15 可用 |
+| 充电 | ⚠️ | 500mA (DTS 缺参数) |
+| 音频 | ❌ | config 合并问题 |
+| 电池 | ❌ | config 合并问题 |
+| NFC | ❌ | I2C pinctrl 错误 |
+| 摄像头 | ❌ | OV13B10 I2C 失败 |
+| 传感器 | ❌ | SLPI 固件待验证 |
+
+### 下一步
+
+需要找到正确的方法强制设置内核配置：
+1. 使用 `scripts/config --set-val` 在 `make olddefconfig` 之前
+2. 或修改 Kconfig 的 `depends on` 条件
+3. 或直接在 `.config` 中设置后跳过 `olddefconfig`
+
+### 相关文件
+
+- `fix_dts.py`: DTS 补丁 (system-power-controller)
+- `patch_pon.py`: qcom-pon.c 补丁 (poweroff)
+- `fix-bt-mac.sh`: 蓝牙 MAC 修复
+- `fw-lmi.tar.gz`: yuweiyuan8 固件包 (17MB)
