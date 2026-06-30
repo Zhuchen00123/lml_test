@@ -37,6 +37,19 @@ Two kernel approaches:
 - **问题**: `CONFIG_SND_SOC_QDSP6_PRM_LPASS_CLOCKS=m` (模块) 与 `CONFIG_PINCTRL_SM8250_LPASS_LPI=y` (内建) 加载顺序冲突
 - **修复**: 重建内核，改 config `CONFIG_SND_SOC_QDSP6_PRM_LPASS_CLOCKS=y`
 
+### 电池 (待修复)
+- **问题**: `CONFIG_BATTERY_QCOM_FG` 未设置，燃油计驱动缺失
+- **修复**: 重建内核，改 config `CONFIG_BATTERY_QCOM_FG=y`
+
+### 固件缺失 (待修复)
+- **问题**: venus.mbn, cdsp.mbn, slpi.mbn, adsp.mbn, a650_zap.mbn 缺失
+- **来源**: [yuweiyuan8/firmware-xiaomi-lmi](https://github.com/yuweiyuan8/firmware-xiaomi-lmi)
+- **修复**: 下载固件包，安装到 ramdisk 或 rootfs
+
+### config 合并问题
+- **问题**: `make defconfig sm8250.config` 没正确合并，defconfig 覆盖了 sm8250.config 的 `=y`
+- **修复**: 用 `scripts/kconfig/merge_config.sh -m .config arch/arm64/configs/sm8250.config` 正确合并
+
 **当前推荐**: 用 charisk 内核 + 模块扩展 ramdisk + Debian rootfs。已打包为 `boot-charisk-debian.img` (42.9MB)。
 
 **注意 — charisk DTS 路径差异**:

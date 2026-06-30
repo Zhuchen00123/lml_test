@@ -195,6 +195,54 @@ Armbian PR #6727 有相同解决方案。
 ### 充电问题
 SMB5 DTS 节点缺少 `qcom,fast-charging-*` 参数，限制在 USB 默认 500mA。标准 PD 协商到 5V/3A 但驱动没用上。
 
+### 全面硬件问题清单 (yuweiyuan8 v6.19 内核)
+
+**config 合并缺陷**（根本原因）：
+`make defconfig sm8250.config` 没有正确合并——defconfig 把 yuweiyuan8 的 `=y` 覆盖成了 `=m` 或未设置。
+
+| 配置项 | yuweiyuan8 期望 | 运行内核实际 | 影响 |
+|--------|:---:|:---:|------|
+| `SND_SOC_QDSP6_PRM` | `=y` | `=m` | 音频时钟驱动模块化，pinctrl 找不到 'core' 时钟 |
+| `SND_SOC_QDSP6_PRM_LPASS_CLOCKS` | `=y` | `=m` | 同上，Soundwire 链路无法建立 |
+| `BATTERY_QCOM_FG` | `=y` | 未设置 | 燃油计驱动缺失，无 battery 设备 |
+| `BATTERY_QCOM_BATTMGR` | 未设置 | `=m` | 电池管理器模块，未加载 |
+
+**修复方法**：重新编译内核，用 `scripts/kconfig/merge_config.sh` 正确合并 config：
+```bash
+make ARCH=arm64 defconfig
+scripts/kconfig/merge_config.sh -m .config arch/arm64/configs/sm8250.config
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- Image.gz modules dtbs
+```
+
+**固件缺失**：
+
+| 固件 | 路径 | 来源 | 影响 |
+|------|------|------|------|
+| `venus.mbn` | `qcom/sm8250/xiaomi/lmi/venus.mbn` | yuweiyuan8/firmware-xiaomi-lmi | 视频编解码器 probe 失败，sync_state 阻塞 |
+| `cdsp.mbn` | `qcom/sm8250/xiaomi/lmi/cdsp.mbn` | 同上 | CDSP 未启动（影响计算摄影） |
+| `slpi.mbn` | `qcom/sm8250/xiaomi/lmi/slpi.mbn` | 同上 | 传感器处理器未启动（加速度计/陀螺仪/磁力计/环境光） |
+| `adsp.mbn` | `qcom/sm8250/xiaomi/lmi/adsp.mbn` | 同上 | ADSP 音频处理器（已尝试过通用版被 TZ 拒绝） |
+| `a650_zap.mbn` | `qcom/sm8250/xiaomi/lmi/a650_zap.mbn` | 同上 | GPU 安全固件（当前用通用版可能有问题） |
+
+**其他问题**：
+
+| 硬件 | 状态 | 根因 |
+|------|:---:|------|
+| 音频 | ❌ | config 缺陷 + ADSP 固件缺失 |
+| 电池电量 | ❌ | config 缺陷 (BATTERY_QCOM_FG 未设置) |
+| 快充 | ❌ | DTS 缺 SMB5 参数 |
+| NFC | ❌ | 驱动未探测 |
+| 摄像头 | ❌ | OV13B10 sensor probe 失败 (-5)，可能缺供电/时钟 |
+| 传感器 | ❌ | SLPI 固件缺失，hexagonrpcd 未启动 |
+| GPS | ❌ | SDX55M 不支持 mainline |
+| Venus | ❌ | venus.mbn 固件缺失 |
+| 显示 | ⚠️ | DSI-1 工作，simple-framebuffer probe 失败 (-ENOMEM) |
+
+**待做的完整修复**：
+1. 重新编译内核（正确合并 config）
+2. 安装 yuweiyuan8/firmware-xiaomi-lmi 的全部固件到 ramdisk/rootfs
+3. 补充 DTS 充电参数
+
 ### 贡献者
 - yuweiyuan8/linux 内核源码 (postmarketOS 官方 lmi 主线)
 - postmarketOS wiki: https://wiki.postmarketos.org/wiki/Xiaomi_POCO_F2_Pro_(xiaomi-lmi)
