@@ -1,17 +1,9 @@
-# Boot images (too large for git)
-*.img
-*.img.gz
-*.img.simg
-
-# Binary firmware
-*.tlv
-*.bin
+# Binary firmware (vendor blobs, not redistributable)
 *.mbn
 *.mdt
 *.b[0-9][0-9]
 *.elf
 *.fw
-*.dtbo
 
 # Build artifacts
 *.pyc
@@ -19,6 +11,12 @@ __pycache__/
 
 # Decompressed kernel
 kernel.raw
+
+# Rootfs (too large for git, 3GB)
+rootfs_lmi.img.simg
+*_lmi.img.simg
+备份/rootfs_lmi_acm.img
+备份/stock-boot.img
 
 # Ramdisk build artifacts (symlinks, not usable on Windows)
 temp_ramdisk_arch/
