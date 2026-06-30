@@ -238,10 +238,31 @@ make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- Image.gz modules dtbs
 | Venus | ❌ | venus.mbn 固件缺失 |
 | 显示 | ⚠️ | DSI-1 工作，simple-framebuffer probe 失败 (-ENOMEM) |
 
+**固件安装后更新**：
+
+| 固件 | 安装状态 | 运行效果 |
+|------|:---:|------|
+| `venus.mbn` | ✅ 已装 | re-probe 成功，video14 解码器 + video15 编码器 |
+| `cdsp.mbn` | ✅ 已装 | 待重启验证 |
+| `slpi.mbn` | ✅ 已装 | 待重启验证 |
+| `adsp.mbn` | ✅ 已装 | 待重启验证 |
+| `a650_zap.mbn` | ✅ 已装 | 待重启验证 |
+
+**其他问题详细分析**：
+
+| 硬件 | 根因 | 修复方式 |
+|------|------|----------|
+| NFC | I2C bus 1 (980000) pinctrl 配置错误：`pin-28 (980000.i2c): error -EINVAL`，NFC 芯片 nxp,pn553 无法探测 | DTS 修复 pinctrl |
+| 摄像头 | OV13B10 sensor I2C 通信失败 (-EIO)，可能是供电/时钟未开启 | DTS 修复电源域 |
+| 音频 | config 缺陷 + ADSP 固件缺失 | 重建内核 + 固件 |
+| 电池 | config 缺陷 | 重建内核 |
+| 快充 | DTS 缺 SMB5 参数 | 改 DTS |
+| 传感器 | SLPI 固件已装，待重启验证 | 固件已装 |
+
 **待做的完整修复**：
 1. 重新编译内核（正确合并 config）
 2. 安装 yuweiyuan8/firmware-xiaomi-lmi 的全部固件到 ramdisk/rootfs
-3. 补充 DTS 充电参数
+3. 补充 DTS：充电参数 + NFC pinctrl + 摄像头电源域
 
 ### 贡献者
 - yuweiyuan8/linux 内核源码 (postmarketOS 官方 lmi 主线)
