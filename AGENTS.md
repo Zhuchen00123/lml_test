@@ -15,8 +15,27 @@ Two kernel approaches:
 
 | Kernel | Version | WiFi strategy | Source |
 |--------|---------|---------------|--------|
+| **yuweiyuan8** | 6.19.0-rc8-sm8250+ | ATH11K=m | [yuweiyuan8/linux](https://github.com/yuweiyuan8/linux) v6.19 (postmarketOS 官方 lmi 主线内核) |
 | charisk | 6.19-rc8 | ATH11K=m, 模块在 ramdisk | 从 boot_lmi.img 提取 kernel + 从 rootfs_lmi.img.simg 提取模块 |
 | ccc007ccc | 7.1.0 | ATH11K=y (全部内建) | /tmp/linux-sm8250-xiaomi-lmi (WSL) |
+
+**当前推荐**: yuweiyuan8 v6.19 + Debian 13 rootfs。已打包为 `boot-pmos-v3.img` (74MB)。
+
+## 已修复的问题
+
+### 蓝牙 BD 地址 (QCA6390)
+- **问题**: QCA6390 蓝牙驱动默认 MAC 是硬编码的 `00:00:00:00:5A:AD`，内核拒绝
+- **修复**: 从 `/etc/machine-id` 生成真实 MAC 地址
+- **脚本**: `fix-bt-mac.sh` (已推到 GitHub)
+- **开机自启**: `fix-bt-mac.service` systemd 服务
+
+### 关机 (Poweroff)
+- **问题**: DTS 缺 `system-power-controller` + qcom-pon 驱动未实现 poweroff
+- **修复**: DTS 加 `&pon { system-power-controller; }` + 补丁 qcom-pon.c 驱动
+
+### 音频 (待修复)
+- **问题**: `CONFIG_SND_SOC_QDSP6_PRM_LPASS_CLOCKS=m` (模块) 与 `CONFIG_PINCTRL_SM8250_LPASS_LPI=y` (内建) 加载顺序冲突
+- **修复**: 重建内核，改 config `CONFIG_SND_SOC_QDSP6_PRM_LPASS_CLOCKS=y`
 
 **当前推荐**: 用 charisk 内核 + 模块扩展 ramdisk + Debian rootfs。已打包为 `boot-charisk-debian.img` (42.9MB)。
 

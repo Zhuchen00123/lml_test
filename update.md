@@ -170,7 +170,7 @@ fastboot boot C:\Users\Public\boot-charisk-debian.img
 | 充电 | ⚠️ 500mA | SMB5 限制 500mA，DTS 缺 fast-charging 参数 |
 | 音频 | ❌ | **LPASS pinctrl 找不到 'core' 时钟** — `CONFIG_SND_SOC_QDSP6_PRM_LPASS_CLOCKS=m` (模块) 与 `CONFIG_PINCTRL_SM8250_LPASS_LPI=y` (内建) 加载顺序冲突 |
 | 电池 | ❌ | qcom_battmgr 模块未加载，无 battery 设备 |
-| 蓝牙 | ⚠️ | 固件加载成功 (`QCA setup on UART is completed`)，但 BD 地址 `00:00:00:00:5A:AD` (无效，缺少设备专属 NVM) |
+| 蓝牙 | ✅ | 固件加载成功，BD 地址从 machine-id 生成，扫描到 Xiaomi Watch、耳机、音箱 |
 | Phosh 桌面 | ✅ | 安装成功，有锁屏界面，输入密码可进桌面 |
 
 ### 音频问题详细分析
@@ -187,7 +187,10 @@ platform 3370000.codec: deferred probe pending: va_macro: unable to get macro cl
 **修复**: 重建内核，改 config `CONFIG_SND_SOC_QDSP6_PRM_LPASS_CLOCKS=y`。
 
 ### 蓝牙问题
-BD 地址 `00:00:00:00:5A:AD` 是 QCA 默认值，缺少设备专属的蓝牙 NVM 校准文件。真实 MAC 地址在 MIUI persist 分区 (`/dev/sda22`) 或需要从 MIUI 原厂固件中提取 `htnv20.bin`。
+BD 地址 `00:00:00:00:5A:AD` 是 QCA 默认值，内核拒绝使用。
+**修复**: `fix-bt-mac.sh` 从 `/etc/machine-id` 生成真实 MAC 地址，通过 `btmgmt public-addr` 设置。
+已创建 `fix-bt-mac.service` systemd 服务开机自启。
+Armbian PR #6727 有相同解决方案。
 
 ### 充电问题
 SMB5 DTS 节点缺少 `qcom,fast-charging-*` 参数，限制在 USB 默认 500mA。标准 PD 协商到 5V/3A 但驱动没用上。
