@@ -1,0 +1,11 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    fragment@0 {
+        target-path = "/soc@0/spmi@c440000/pmic@0/pon@800";
+        __overlay__ {
+            system-power-controller;
+        };
+    };
+};
